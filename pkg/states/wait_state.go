@@ -1,10 +1,10 @@
 package states
 
 type Wait struct {
-	name          string
-	previousState string
-	nextState     string
-	end           bool
+	name     string
+	previous string
+	next     string
+	end      bool
 }
 
 func NewWait(name, previous, next string, end bool) *Wait {
@@ -20,17 +20,13 @@ func (ws *Wait) Type() string {
 }
 
 func (ws *Wait) Previous() string {
-	return ws.previousState
+	return ws.previous
 }
 
 func (ws *Wait) Next() string {
-	return ws.nextState
+	return ws.next
 }
 
 func (ws *Wait) End() bool {
 	return ws.end
-}
-
-func (ws *Wait) Get() *Wait {
-	return ws
 }

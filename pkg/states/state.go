@@ -21,11 +21,10 @@ const (
 	StringNotEquals = "StringNotEquals"
 )
 
-type WorkflowState[T any] interface {
+type WorkflowState interface {
 	Name() string
 	Type() string
 	Previous() string
 	Next() string
 	End() bool
-	Get() T
 }

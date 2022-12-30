@@ -22,10 +22,10 @@ func NewCondition(expressions []Expression, conditionType, next string) *Conditi
 }
 
 type Choice struct {
-	conditionList []*Condition
-	previousState string
-	nextState     string
-	end           bool
+	conditions []*Condition
+	previous   string
+	next       string
+	end        bool
 }
 
 func NewChoice(conditionList []*Condition, previous, next string, end bool) *Choice {
@@ -41,17 +41,17 @@ func (cs *Choice) Type() string {
 }
 
 func (cs *Choice) Previous() string {
-	return cs.previousState
+	return cs.previous
 }
 
 func (cs *Choice) Next() string {
-	return cs.nextState
+	return cs.next
 }
 
 func (cs *Choice) End() bool {
 	return cs.end
 }
 
-func (cs *Choice) Get() *Choice {
-	return cs
+func (cs *Choice) Conditions() []*Condition {
+	return cs.conditions
 }

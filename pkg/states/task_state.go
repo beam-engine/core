@@ -1,10 +1,10 @@
 package states
 
 type Task struct {
-	name          string
-	previousState string
-	nextState     string
-	end           bool
+	name     string
+	previous string
+	next     string
+	end      bool
 }
 
 func NewTask(name, previous, next string, end bool) *Task {
@@ -20,17 +20,13 @@ func (ts *Task) Type() string {
 }
 
 func (ts *Task) Previous() string {
-	return ts.previousState
+	return ts.previous
 }
 
 func (ts *Task) Next() string {
-	return ts.nextState
+	return ts.next
 }
 
 func (ts *Task) End() bool {
 	return ts.end
-}
-
-func (ts *Task) Get() *Task {
-	return ts
 }
