@@ -1,32 +1,32 @@
 package states
 
-type Wait struct {
+type WaitState struct {
 	name     string
 	previous string
 	next     string
 	end      bool
 }
 
-func NewWait(name, previous, next string, end bool) *Wait {
-	return &Wait{name, previous, next, end}
+func NewWait(name, previous, next string, end bool) *WaitState {
+	return &WaitState{name, previous, next, end}
 }
 
-func (ws *Wait) Name() string {
+func (ws *WaitState) Name() string {
 	return ws.name
 }
 
-func (ws *Wait) Type() string {
-	return TypeWait
+func (ws *WaitState) Type() StateType {
+	return Wait
 }
 
-func (ws *Wait) Previous() string {
+func (ws *WaitState) Previous() string {
 	return ws.previous
 }
 
-func (ws *Wait) Next() string {
+func (ws *WaitState) Next() string {
 	return ws.next
 }
 
-func (ws *Wait) End() bool {
+func (ws *WaitState) End() bool {
 	return ws.end
 }

@@ -1,32 +1,32 @@
 package states
 
-type Task struct {
+type TaskState struct {
 	name     string
 	previous string
 	next     string
 	end      bool
 }
 
-func NewTask(name, previous, next string, end bool) *Task {
-	return &Task{name, previous, next, end}
+func NewTask(name, previous, next string, end bool) *TaskState {
+	return &TaskState{name, previous, next, end}
 }
 
-func (ts *Task) Name() string {
+func (ts *TaskState) Name() string {
 	return ts.name
 }
 
-func (ts *Task) Type() string {
-	return TypeTask
+func (ts *TaskState) Type() StateType {
+	return Task
 }
 
-func (ts *Task) Previous() string {
+func (ts *TaskState) Previous() string {
 	return ts.previous
 }
 
-func (ts *Task) Next() string {
+func (ts *TaskState) Next() string {
 	return ts.next
 }
 
-func (ts *Task) End() bool {
+func (ts *TaskState) End() bool {
 	return ts.end
 }

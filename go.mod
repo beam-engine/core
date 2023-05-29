@@ -1,6 +1,6 @@
 module github.com/beam/core
 
-go 1.18
+go 1.20
 
 require (
 	github.com/rs/zerolog v1.0.0

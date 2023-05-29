@@ -2,10 +2,18 @@ package domain
 
 import "github.com/beam/core/pkg/states"
 
+type Engine int
+
+const (
+	ExpressEngine Engine = iota
+	DefaultEngine
+)
+
 type WorkflowGraph struct {
+	States         map[string]states.WorkflowState
 	WorkflowName   string
-	IsAsync        bool
 	StartAt        string
 	ResultVariable string
-	StatesMap      map[string]states.WorkflowState
+	Mode           Engine
+	IsAsync        bool
 }

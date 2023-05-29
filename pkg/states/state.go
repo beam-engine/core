@@ -1,29 +1,32 @@
 package states
 
+type StateType int
+type ConditionType int
+type MatchType int
+
 // State Type
 const (
-	TypeTask = "Task"
-	TypeCond = "Condition"
-	TypeWait = "Wait"
-	TypePar  = "Parallel"
+	Task StateType = iota
+	Cond
+	Wait
+	Par
 )
 
-// Condition Type
 const (
-	Simple = "Simple"
-	And    = "And"
-	Or     = "Or"
+	Simple ConditionType = iota
+	And
+	Or
 )
 
 // Match Type
 const (
-	StringEquals    = "StringEquals"
-	StringNotEquals = "StringNotEquals"
+	StringEquals MatchType = iota
+	StringNotEquals
 )
 
 type WorkflowState interface {
 	Name() string
-	Type() string
+	Type() StateType
 	Previous() string
 	Next() string
 	End() bool
