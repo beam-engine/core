@@ -26,6 +26,9 @@ const LABEL_ASYNC = "Async"
 // All workflow states
 const LABEL_STATES = "States"
 
+// workflow engine mode Realtime, Near-Realtime and Non-Realtime.
+const LABEL_MODE = "Mode"
+
 // Result Variable
 const LABEL_RESULT_VARIABLE = "ResultVariable"
 
@@ -54,12 +57,14 @@ const LABEL_CONDITION_MATCH_VALUE = "MatchValue"
 const LABEL_EXPRESSION = "Expression"
 const LABEL_CONDITION_DEFAULT = "Default"
 
+// Workflow Engine mode values
+const LABEL_ENGINE_EXPRESS = "Express"
+const LABEL_ENGINE_STANDARD = "Standard"
+
 // Error Messages
 const ERR_INVALID_JSON_FILE = "Cannot able to create workflow graph from Json"
 const ERR_REQUIRED_INFO_MISSING = "required information in workflow Json is missing"
 const ERR_INVALID_WORKFLOW = "The provided workflow json is wrong"
-
-const json = `{"name":{"first":"Janet","last":"Prichard"},"age":47}`
 
 // Parser contract, Generates [WorkflowGraph] from workflow definition
 type Parser interface {
@@ -90,9 +95,55 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 		return nil, err
 	}
 
-	ue := gjson.Get(json, "name.last")
-	println(ue.String())
-	return nil, nil
+	workflowName := jsonNode.Get(LABEL_NAME).Str
+
+	startState := jsonNode.Get(LABEL_INIT_STATE).Str
+
+	isAsync := jsonNode.Get(LABEL_ASYNC).Bool()
+
+	resultVariable := ""
+	if !isAsync {
+		resultVariable = jsonNode.Get(LABEL_RESULT_VARIABLE).Str
+	}
+
+	mode := jsonNode.Get(LABEL_MODE).Str
+	engineMode, err := transFormMode(mode)
+
+	if err != nil {
+		log.Error().Msg("error: problem while parsing mode value in workflow json - " + err.Error())
+		return nil, err
+	}
+
+	workflowGraph := domain.WorkflowGraph{
+		States:         nil,
+		WorkflowName:   workflowName,
+		StartAt:        startState,
+		ResultVariable: resultVariable,
+		Mode:           engineMode,
+		IsAsync:        isAsync,
+	}
+	return &workflowGraph, nil
+}
+
+func transFormMode(mode string) (domain.Engine, error) {
+	log.Info().Msg("in transFormMode")
+	log.Info().Msg("mode = " + mode)
+
+	var result domain.Engine
+	var err error
+
+	switch mode {
+	case LABEL_ENGINE_EXPRESS:
+		result = domain.ExpressEngine
+		break
+	case LABEL_ENGINE_STANDARD:
+		result = domain.DefaultEngine
+		break
+	default:
+		err = errors.New("error: invalid mode type provided, expected values = [" + LABEL_ENGINE_EXPRESS + ", " + LABEL_ENGINE_STANDARD + "]")
+		break
+	}
+	return result, err
 }
 
 func validateFields(jsonNode gjson.Result) error {
@@ -120,6 +171,11 @@ func validateFields(jsonNode gjson.Result) error {
 	}
 
 	if !jsonNode.Get(LABEL_INIT_STATE).Exists() {
+		log.Error().Msg("error: required label" + LABEL_INIT_STATE + " not found in json")
+		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_INIT_STATE)
+	}
+
+	if !jsonNode.Get(LABEL_MODE).Exists() {
 		log.Error().Msg("error: required label" + LABEL_INIT_STATE + " not found in json")
 		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_INIT_STATE)
 	}

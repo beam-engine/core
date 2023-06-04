@@ -2,7 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/rs/zerolog/log"
+
+	"github.com/beam/core/pkg/parser"
 	"github.com/beam/core/pkg/states"
 )
 
@@ -30,4 +34,14 @@ func main() {
 		}
 	}
 
+	file, err := os.Open("/Users/kishorekarunakaran/coding2fun/beam-engine/core/resources/RE2RE.json")
+	if err != nil {
+		log.Error().Msg("Cannot Read File = " + err.Error())
+		os.Exit(0)
+	}
+	defer file.Close()
+
+	p := parser.NewJsonParser()
+	res, _ := p.CreateWorkflowGraph(file)
+	fmt.Println(res)
 }
