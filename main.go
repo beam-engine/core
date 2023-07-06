@@ -7,11 +7,10 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/beam/core/pkg/parser"
-	"github.com/beam/core/pkg/states"
 )
 
 func main() {
-	dict := make(map[string]states.WorkflowState)
+	/*dict := make(map[string]states.WorkflowState)
 
 	dict["1"] = states.NewTask("Fun1", "", "", false)
 	dict["2"] = states.NewWait("Fun2", "", "", false)
@@ -32,9 +31,9 @@ func main() {
 		default:
 			fmt.Println("Invalid state")
 		}
-	}
+	}*/
 
-	file, err := os.Open("/Users/kishorekarunakaran/coding2fun/beam-engine/core/resources/RE2RE.json")
+	file, err := os.Open("resources/RE2RE.json")
 	if err != nil {
 		log.Error().Msg("Cannot Read File = " + err.Error())
 		os.Exit(0)

@@ -1,7 +1,10 @@
 package parser
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/beam/core/pkg/states"
 	"io/ioutil"
 	"os"
 
@@ -95,6 +98,8 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 		return nil, err
 	}
 
+	workflowStateMap := map[string]*states.WorkflowState{}
+
 	workflowName := jsonNode.Get(LABEL_NAME).Str
 
 	startState := jsonNode.Get(LABEL_INIT_STATE).Str
@@ -114,6 +119,39 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 		return nil, err
 	}
 
+	stateNode := jsonNode.Get(LABEL_STATES)
+
+	var dataMap map[string]any
+	err = json.Unmarshal([]byte(stateNode.String()), &dataMap)
+	if err != nil {
+		log.Error().Msg("Error = " + err.Error())
+		return nil, err
+	}
+	for key, _ := range dataMap {
+		fmt.Println(key)
+	}
+
+	stateNode.ForEach(func(key, value gjson.Result) bool {
+		fmt.Println("Key = ", key.String(), " and Value = ", value)
+		return true
+	})
+
+	currentState := startState
+	for currentState != "" && stateNode.Get(currentState).Exists() {
+		stateNode := stateNode.Get(currentState)
+		/*stateNode.ForEach(func(key, value gjson.Result) bool {
+			fmt.Println("Key = ", key, " and Value = ", value)
+			return true
+		})*/
+		workflowState, err := jp.createWorkflowState(stateNode)
+		if err != nil {
+			log.Error().Msg("unable to create workflow state from the state node " + stateNode.Str + " with the error - " + err.Error())
+			return nil, err
+		}
+		workflowStateMap[currentState] = workflowState
+		currentState = ""
+	}
+
 	workflowGraph := domain.WorkflowGraph{
 		States:         nil,
 		WorkflowName:   workflowName,
@@ -123,6 +161,10 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 		IsAsync:        isAsync,
 	}
 	return &workflowGraph, nil
+}
+
+func (jp *jsonParser) createWorkflowState(stateNode gjson.Result) (*states.WorkflowState, error) {
+	return nil, nil
 }
 
 func transFormMode(mode string) (domain.Engine, error) {
