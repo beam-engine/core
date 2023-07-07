@@ -1,9 +1,7 @@
 package parser
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/beam/core/pkg/states"
 	"io/ioutil"
 	"os"
@@ -14,29 +12,34 @@ import (
 	"github.com/beam/core/pkg/domain"
 )
 
-// Name of the workflow
-const LABEL_NAME = "Name"
+// LabelName Name of the workflow
+const LabelName = "Name"
 
-// Description in workflow JSON
-const LABEL_DESCRIPTION = "Description"
+// LabelDescription Description in workflow JSON
+const LabelDescription = "Description"
 
-// The First State in the workflow
-const LABEL_INIT_STATE = "InitState"
+// LabelInitState The First State in the workflow
+const LabelInitState = "InitState"
 
-// Is workflow needs to executed in async mode
-const LABEL_ASYNC = "Async"
+// LabelAsync Is workflow needs to executed in async mode
+const LabelAsync = "Async"
 
-// All workflow states
-const LABEL_STATES = "States"
+// LabelStates All workflow states
+const LabelStates = "States"
 
-// workflow engine mode Realtime, Near-Realtime and Non-Realtime.
-const LABEL_MODE = "Mode"
+// LabelMode workflow engine mode Realtime, Near-Realtime and Non-Realtime.
+const LabelMode = "Mode"
 
-// Result Variable
-const LABEL_RESULT_VARIABLE = "ResultVariable"
+// LabelResultVariable Result Variable
+const LabelResultVariable = "ResultVariable"
 
-// Workflow Type
-const LABEL_TYPE = "Type"
+// LabelType Workflow Type
+const LabelType = "Type"
+
+const TypeTask = "Task"
+const TypeCondition = "Condition"
+
+const TypeWait = "Wait"
 
 // Workflow next state
 const LABEL_NEXT = "Next"
@@ -100,18 +103,18 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 
 	workflowStateMap := map[string]*states.WorkflowState{}
 
-	workflowName := jsonNode.Get(LABEL_NAME).Str
+	workflowName := jsonNode.Get(LabelName).Str
 
-	startState := jsonNode.Get(LABEL_INIT_STATE).Str
+	startState := jsonNode.Get(LabelInitState).Str
 
-	isAsync := jsonNode.Get(LABEL_ASYNC).Bool()
+	isAsync := jsonNode.Get(LabelAsync).Bool()
 
 	resultVariable := ""
 	if !isAsync {
-		resultVariable = jsonNode.Get(LABEL_RESULT_VARIABLE).Str
+		resultVariable = jsonNode.Get(LabelResultVariable).Str
 	}
 
-	mode := jsonNode.Get(LABEL_MODE).Str
+	mode := jsonNode.Get(LabelMode).Str
 	engineMode, err := transFormMode(mode)
 
 	if err != nil {
@@ -119,38 +122,18 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 		return nil, err
 	}
 
-	stateNode := jsonNode.Get(LABEL_STATES)
-
-	var dataMap map[string]any
-	err = json.Unmarshal([]byte(stateNode.String()), &dataMap)
-	if err != nil {
-		log.Error().Msg("Error = " + err.Error())
-		return nil, err
-	}
-	for key, _ := range dataMap {
-		fmt.Println(key)
-	}
+	stateNode := jsonNode.Get(LabelStates)
 
 	stateNode.ForEach(func(key, value gjson.Result) bool {
-		fmt.Println("Key = ", key.String(), " and Value = ", value)
+		component := key.String()
+		stateInstance, err := jp.createWorkflowState(value)
+		if err != nil {
+			log.Error().Msg("error: cannot able to create workflow state for " + component)
+			os.Exit(1)
+		}
+		workflowStateMap[component] = stateInstance
 		return true
 	})
-
-	currentState := startState
-	for currentState != "" && stateNode.Get(currentState).Exists() {
-		stateNode := stateNode.Get(currentState)
-		/*stateNode.ForEach(func(key, value gjson.Result) bool {
-			fmt.Println("Key = ", key, " and Value = ", value)
-			return true
-		})*/
-		workflowState, err := jp.createWorkflowState(stateNode)
-		if err != nil {
-			log.Error().Msg("unable to create workflow state from the state node " + stateNode.Str + " with the error - " + err.Error())
-			return nil, err
-		}
-		workflowStateMap[currentState] = workflowState
-		currentState = ""
-	}
 
 	workflowGraph := domain.WorkflowGraph{
 		States:         nil,
@@ -164,7 +147,39 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 }
 
 func (jp *jsonParser) createWorkflowState(stateNode gjson.Result) (*states.WorkflowState, error) {
-	return nil, nil
+	stateType := stateNode.Get(LabelType).String()
+
+	var result states.WorkflowState
+	var err error = nil
+
+	switch stateType {
+	case TypeTask:
+		result, err = jp.createTaskState(stateNode)
+		break
+	case TypeWait:
+		result, err = jp.createWaitState(stateNode)
+		break
+	case TypeCondition:
+		result, err = jp.createChoiceState(stateNode)
+		break
+	default:
+		err = errors.New("unknown state type found " + stateType)
+		break
+	}
+
+	return &result, err
+}
+
+func (jp *jsonParser) createTaskState(stateNode gjson.Result) (*states.TaskState, error) {
+	return &states.TaskState{}, nil
+}
+
+func (jp *jsonParser) createWaitState(stateNode gjson.Result) (*states.WaitState, error) {
+	return &states.WaitState{}, nil
+}
+
+func (jp *jsonParser) createChoiceState(stateNode gjson.Result) (*states.ChoiceState, error) {
+	return &states.ChoiceState{}, nil
 }
 
 func transFormMode(mode string) (domain.Engine, error) {
@@ -192,34 +207,34 @@ func validateFields(jsonNode gjson.Result) error {
 	log.Info().Msg("in validateFields")
 	log.Info().Msg("workflow json = " + jsonNode.String())
 
-	if !jsonNode.Get(LABEL_NAME).Exists() {
-		log.Error().Msg("error: required label" + LABEL_NAME + " not found in json")
-		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_NAME)
+	if !jsonNode.Get(LabelName).Exists() {
+		log.Error().Msg("error: required label" + LabelName + " not found in json")
+		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelName)
 	}
 
-	if !jsonNode.Get(LABEL_DESCRIPTION).Exists() {
-		log.Error().Msg("error: required label" + LABEL_DESCRIPTION + " not found in json")
-		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_DESCRIPTION)
+	if !jsonNode.Get(LabelDescription).Exists() {
+		log.Error().Msg("error: required label" + LabelDescription + " not found in json")
+		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelDescription)
 	}
 
-	if !jsonNode.Get(LABEL_ASYNC).Exists() {
-		log.Error().Msg("error: required label" + LABEL_ASYNC + " not found in json")
-		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_ASYNC)
+	if !jsonNode.Get(LabelAsync).Exists() {
+		log.Error().Msg("error: required label" + LabelAsync + " not found in json")
+		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelAsync)
 	}
 
-	if !jsonNode.Get(LABEL_STATES).Exists() {
-		log.Error().Msg("error: required label" + LABEL_STATES + " not found in json")
-		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_STATES)
+	if !jsonNode.Get(LabelStates).Exists() {
+		log.Error().Msg("error: required label" + LabelStates + " not found in json")
+		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelStates)
 	}
 
-	if !jsonNode.Get(LABEL_INIT_STATE).Exists() {
-		log.Error().Msg("error: required label" + LABEL_INIT_STATE + " not found in json")
-		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_INIT_STATE)
+	if !jsonNode.Get(LabelInitState).Exists() {
+		log.Error().Msg("error: required label" + LabelInitState + " not found in json")
+		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelInitState)
 	}
 
-	if !jsonNode.Get(LABEL_MODE).Exists() {
-		log.Error().Msg("error: required label" + LABEL_INIT_STATE + " not found in json")
-		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LABEL_INIT_STATE)
+	if !jsonNode.Get(LabelMode).Exists() {
+		log.Error().Msg("error: required label" + LabelInitState + " not found in json")
+		return errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelInitState)
 	}
 
 	log.Info().Msg("return from validateFields")
