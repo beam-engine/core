@@ -41,13 +41,13 @@ const TypeCondition = "Condition"
 
 const TypeWait = "Wait"
 
-// Workflow next state
-const LABEL_NEXT = "Next"
+// LabelNext Workflow next state
+const LabelNext = "Next"
 
 const LABEL_BRANCHES = "Branches"
 
-// Is End of the workflow
-const LABEL_END = "End"
+// LabelEnd Is End of the workflow
+const LabelEnd = "End"
 
 const EXPRESSION_SIMPLE = "Simple"
 
@@ -126,7 +126,7 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 
 	stateNode.ForEach(func(key, value gjson.Result) bool {
 		component := key.String()
-		stateInstance, err := jp.createWorkflowState(value)
+		stateInstance, err := jp.createWorkflowState(component, value)
 		if err != nil {
 			log.Error().Msg("error: cannot able to create workflow state for " + component)
 			os.Exit(1)
@@ -146,8 +146,27 @@ func (jp *jsonParser) CreateWorkflowGraph(file *os.File) (*domain.WorkflowGraph,
 	return &workflowGraph, nil
 }
 
-func (jp *jsonParser) createWorkflowState(stateNode gjson.Result) (*states.WorkflowState, error) {
+func (jp *jsonParser) createWorkflowState(component string, stateNode gjson.Result) (*states.WorkflowState, error) {
+
+	if !stateNode.Get(LabelType).Exists() {
+		log.Error().Msg("error: every state should have" + LabelType + " field")
+		return nil, errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelType)
+	}
+
+	if !stateNode.Get(LabelEnd).Exists() {
+		log.Error().Msg("error: every state should have" + LabelEnd + " field")
+		return nil, errors.New(ERR_REQUIRED_INFO_MISSING + "= " + LabelEnd)
+	}
+	isEnd := stateNode.Get(LabelEnd).Bool()
 	stateType := stateNode.Get(LabelType).String()
+
+	if TypeCondition == stateType {
+		node := stateNode.Get(LabelNext)
+		if isEnd && node.Exists() {
+			log.Error().Msg("error: cannot have end state as true because next state is not null")
+			return nil, errors.New(ERR_INVALID_WORKFLOW + "= " + component)
+		}
+	}
 
 	var result states.WorkflowState
 	var err error = nil
